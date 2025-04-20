@@ -33,12 +33,23 @@
             </ul>
         {% endif %}
         {% endwith %}
+        
         {% if transcript %}
             <div class="transcript-container">
-                <h2 class="transcript-title">Contenido del Video:</h2>
+                {% if video_title %}
+                    <h2 class="transcript-title">{{ video_title }}</h2>
+                    {% if video_author %}
+                        <p><strong>Autor:</strong> {{ video_author }}</p>
+                    {% endif %}
+                    {% if video_description %}
+                        <p><strong>Descripción:</strong><br>{{ video_description }}</p>
+                    {% endif %}
+                {% endif %}
+
+                <h3 class="transcript-title">Contenido del Video:</h3>
                 <div>
-                    <span class="material-symbols-outlined copy-icon" onclick="copyTranscript()">content_copy</span>
-                    <span class="material-symbols-outlined chatgpt-button" onclick="sendToChatGPT()">open_in_new</span>
+                    <span class="material-symbols-outlined copy-icon" onclick="copyTranscript()" title="Copiar texto">content_copy</span>
+                    <span class="material-symbols-outlined chatgpt-button" onclick="sendToChatGPT()" title="Enviar a ChatGPT">open_in_new</span>
                 </div>
                 <p class="transcript-content" id="transcript">{{ transcript }}</p>
             </div>
@@ -46,7 +57,11 @@
     </div>
     <script>
         function copyTranscript() {
-            const transcriptText = document.getElementById('transcript').innerText;
+            const transcriptText = document.getElementById('transcript')?.innerText || '';
+            if (!transcriptText) {
+                alert('No hay texto para copiar.');
+                return;
+            }
             navigator.clipboard.writeText(transcriptText).then(() => {
                 alert('Texto copiado al portapapeles');
             }).catch(err => {
@@ -55,7 +70,11 @@
         }
 
         function sendToChatGPT() {
-            const transcriptText = document.getElementById('transcript').innerText;
+            const transcriptText = document.getElementById('transcript')?.innerText || '';
+            if (!transcriptText) {
+                alert('No hay texto para enviar.');
+                return;
+            }
             navigator.clipboard.writeText(transcriptText).then(() => {
                 window.open('https://chatgpt.com/g/g-CPZ62OvXi-yt-content-creator', '_blank');
             }).catch(err => {
