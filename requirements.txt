@@ -2,4 +2,5 @@
 Flask
 youtube-transcript-api
 gunicorn
-# etc.
+# Para usar proxies SOCKS5 vía Tor
+pysocks
