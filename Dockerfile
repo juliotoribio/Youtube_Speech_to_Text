@@ -1,27 +1,34 @@
 FROM python:3.10-slim
 
-# 1) Declaramos args para que Docker no marque error al recibir build-args
+# 1) Recibimos los build-args (con proxy), pero no los exportamos como ENV aún
 ARG HTTP_PROXY
 ARG HTTPS_PROXY
+
+# 2) Desactivamos por completo cualquier proxy para las instalaciones
+#     (APT y pip usarán conexión directa)
+ENV http_proxy=""
+ENV https_proxy=""
+ENV HTTP_PROXY=""
+ENV HTTPS_PROXY=""
 
 WORKDIR /app
 COPY . .
 
-# 2) Instalamos Tor (para runtime) y deps de sistema si necesitas compilar algo
+# 3) Instalación de Tor y deps de sistema
 RUN apt-get update && \
     apt-get install -y tor libffi-dev python3-dev build-essential && \
     rm -rf /var/lib/apt/lists/*
 
-# 3) Desactivamos proxy sólo para la instalación de requirements
-ENV HTTP_PROXY=""
-ENV HTTPS_PROXY=""
+# 4) Instalación de requirements (incluye pysocks)
 RUN pip install --no-cache-dir -r requirements.txt
 
-# 4) Restauramos proxy para el runtime (EasyPanel inyectará las vars aquí)
+# 5) Restauramos las vars de proxy para el runtime
+ENV http_proxy=${HTTP_PROXY}
+ENV https_proxy=${HTTPS_PROXY}
 ENV HTTP_PROXY=${HTTP_PROXY}
 ENV HTTPS_PROXY=${HTTPS_PROXY}
 
-# 5) Exponemos el puerto y arrancamos Tor + Gunicorn
+# 6) Exponemos y arrancamos
 EXPOSE 5000
 CMD service tor start && \
     gunicorn -b 0.0.0.0:$PORT main:app
