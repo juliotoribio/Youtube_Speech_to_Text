@@ -1,18 +1,16 @@
-# 1) Usa la imagen base de Python
+# 1) Base
 FROM python:3.10-slim
 
-# 2) Sitúa el contexto de trabajo
+# 2) Directorio de trabajo
 WORKDIR /app
 
-# 3) Copia todo tu código y requirements
+# 3) Copia el código y requisitos
 COPY . .
 
-# 4) Deshabilita cualquier proxy en APT para que funcione con SOCKS5
+# 4) Deshabilita proxy para APT e instala paquetes de sistema
 RUN printf 'Acquire::http::Proxy "false";\nAcquire::https::Proxy "false";\n' \
-    > /etc/apt/apt.conf.d/99no-proxy
-
-# 5) Instala dependencias del sistema (incluye Tor si lo necesitas en runtime)
-RUN apt-get update \
+      > /etc/apt/apt.conf.d/99no-proxy \
+ && apt-get update \
  && apt-get install -y --no-install-recommends \
        tor \
        libffi-dev \
@@ -20,15 +18,17 @@ RUN apt-get update \
        build-essential \
  && rm -rf /var/lib/apt/lists/*
 
-# 6) Instala tus librerías de Python SIN usar proxy en pip
-RUN pip install --no-cache-dir --proxy="" -r requirements.txt
+# 5) Pip SIN proxy
+ENV HTTP_PROXY="" \
+    HTTPS_PROXY=""
+RUN pip install --no-cache-dir -r requirements.txt
 
-# 7) (Opcional) Restaura las variables de proxy para el runtime, si tu app las requiere
-ENV HTTP_PROXY="socks5://127.0.0.1:9050"
-ENV HTTPS_PROXY="socks5://127.0.0.1:9050"
+# 6) Restaura proxy para runtime (usa los mismos valores de build-args)
+ARG HTTP_PROXY
+ARG HTTPS_PROXY
+ENV HTTP_PROXY=${HTTP_PROXY} \
+    HTTPS_PROXY=${HTTPS_PROXY}
 
-# 8) Expón el puerto que use tu aplicación (ajusta según tu app)
-EXPOSE 3000
-
-# 9) Define comando de arranque (ajusta al entrypoint de tu app)
-CMD ["python", "main.py"]
+# 7) Arranca Tor y luego tu aplicación
+CMD tor & \
+    python main.py
